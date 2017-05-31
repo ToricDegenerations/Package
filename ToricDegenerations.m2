@@ -148,7 +148,7 @@ groebnerToricDegenerations(Ideal):=opt->(I)->(
     if opt.minConvention==false then print "Tropicalize it with gfan and then use
    scanInitialIdeals(computeWeightVectors(T,minConvention=>false),I,minConvention=>false)"
    else(
-       T:=tropicalVariety(I);
+       T:=tropicalVariety(I),
     groebnerToricDegenerations(computeWeightVectors(T),I)
     )
     )
