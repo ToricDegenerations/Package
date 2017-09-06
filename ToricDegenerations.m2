@@ -1,3 +1,4 @@
+--problem with computeModifiedIdeal since it changes the ring where you are working on M2
 newPackage(
     	"ToricDegenerations",
 	Version => "0.1",
@@ -54,22 +55,28 @@ getVector = (mycone,rays) -> (
 --Computes  one weight vector for each cone, available MIN or MAX convention
 computeWeightVectors=method(Options => {
 	minConvention=>true});
-computeWeightVectors (List,List,List):=opt->(ConesT,RaysT,LinealitySpaceT)->(
+computeWeightVectors (List,Matrix,Matrix):=opt->(ConesT,R,L)->(
+      RaysT:=entries transpose R;
+       Lin:={};
+       for i from 1 to #(entries(L_{0})) do(Lin=Lin|{1});
+       print "ok";
     if opt.minConvention==false then(
-     apply(ConesT, mycone->(getVector(mycone,RaysT)-(min(getVector(mycone,RaysT))-1)*sum(LinealitySpaceT))))
-     else ( apply(ConesT, mycone->(getVector(mycone,RaysT)-(max(getVector(mycone,RaysT))+1)*sum(LinealitySpaceT))))
+     apply(ConesT, mycone->(getVector(mycone,RaysT)-(min(getVector(mycone,RaysT))-1)*Lin)))
+     else ( apply(ConesT, mycone->(getVector(mycone,RaysT)-(max(getVector(mycone,RaysT))+1)*Lin)))
      );
 --input: maximal cones,rays and linealityspace of a tropical variety , these have to be lists,use the option minConvetion=>false if you are
 --using max convention
 
 
 computeWeightVectors (TropicalCycle):=opt->(T)->(
-    RaysT:=getRays T;
-    LinealitySpaceT:=getLinealitySpace T;
-    ConesT:=getMaximalCones T;
+    RaysT:=entries transpose rays T;
+    L:=linealitySpace T;
+    ConesT:=maxCones T;
+     Lin:={};
+       for i from 1 to #entries(L_{0}) do(Lin=Lin|{1});
     if opt.minConvention==false then(
-     apply(ConesT, mycone->(getVector(mycone,RaysT)-(min(getVector(mycone,RaysT))-1)*sum(LinealitySpaceT))))
-     else ( apply(ConesT, mycone->(getVector(mycone,RaysT)-(max(getVector(mycone,RaysT))+1)*sum(LinealitySpaceT))))
+     apply(ConesT, mycone->(getVector(mycone,RaysT)-(min(getVector(mycone,RaysT))-1)*Lin)))
+     else ( apply(ConesT, mycone->(getVector(mycone,RaysT)-(max(getVector(mycone,RaysT))+1)*Lin)))
      );
 
 
@@ -246,86 +253,94 @@ return MissingBinomials
 
 
 --computes the ideal I' as defined in the paper
---L is the list of binomials,V is the set of new variables ,H list of homogenizing variables,I old ideal
---MODIFY SO THAT YOU DON'T ADD USELESS HOMOGENIZING VARIABLES
-computeModifiedIdeal=(L,V,H,I)->(
+--L is the list of binomials,V is the set of new variables ,H list with  homogenizing variable,I old ideal
+--ATTENTION: only one homogeneizing variable needed!
+computeModifiedIdeal=(L,V,I)->(
 i:=0;
-R:=QQ[gens ring I,V,H];
+R:=QQ[gens ring I,V];
+print gens R;
 n:=#(gens ring I);
 k:=#V;
 S:=0;
 A:=gens R;
 J:=sub(I,R);
-
+h:=symbol h;
 for i from 0 to #L-1 do(
-    	if #H==0 then (J=J+ideal((gens R)_{n+i}-{sub(L_i,R)}))
-	else(
-	J=homogenize(J+ideal((gens R)_{n+i}-{sub(L_i,R)}),A_(n+k+i)));
-	);
-  return sub(J,R);
+    	J=J+ideal((gens R)_{n+i}-{sub(L_i,R)})
+);
+print J;
+if  (isHomogeneous J) ==true then return sub(J,R)
+else ( R=QQ[gens ring I,V,h]; J=homogenize(sub(J,R),(gens R)_(n+k)),return sub(J,R))
   )
  
 
 
 --computes the map between trop(I) and trop(I'), note that if there is a cone whose projections intersects more maximal cones in their interior then 
 --in the output the cone is mapped to nothing
-
+--TO BE CHANGED
 mapMaximalCones=(newR,newM,newL,R4,M4,L4)->(
      --creates the list of the projected rays, forgetting the last two coordinates;
      i:=0;
      j:=0;
      --n is the ambient dimension of the old tropcial variety
-     n:=#R4_0;
+     n:=#entries R4_{0};
+  
      mylistOfRays:={};
-     while i<#newR do(
-     mylistOfRays=append(mylistOfRays,submatrix (matrix {newR_i},{0..n-1}));
+     while i< numColumns(newR)  do(
+
+     mylistOfRays=append( mylistOfRays,submatrix (transpose (newR_{i}),{0..n-1}));
      i=i+1
      );
-    
+
      --creates a list the maximal cones of the original tropical 
      --variety but each cone is represented by the facets
      i=0;
      s:=0;
-     c:=0;
+     
      mcone:={};
      mylistOfMaxCones:={};
-     while i<#M4 do(
+     c:=0;
+     while i< #M4 do(
      	 mcone={};
 	 s=#M4_0-1;
-     	 for j from 0 to s
-	  do(c=M4_i_j;mcone=append(mcone,R4_c));  
-     	 mylistOfMaxCones=append(mylistOfMaxCones,fourierMotzkin(transpose matrix mcone ,transpose matrix L4));
+	 c=M4_i_0;
+	 mcone= (R4_{c});
+     	 for j from 1 to s-1
+	  do(c=M4_i_j;mcone= mcone | (R4_{c}));  
+     	 mylistOfMaxCones=append(mylistOfMaxCones,fourierMotzkin( mcone , L4));
+	    
      	 i=i+1
      	 );
-    
+ 
   --looks for a cone of original tropical variety where  newM_i projects
   i=0;
      projCone:={}; 
      projCones:={};
      mcone={};
      
-     while i<#newM do(
+     while i< #newM  do(
 	 
 	 s=newM_i_0;
 	 mcone=mylistOfRays_s;
-	 for j from 1 to #newM_i-1 do(c=newM_i_j;mcone=mcone||mylistOfRays_c);
+
+	 for j from 1 to (#newM_i-1) do(c=newM_i_j;mcone=mcone||mylistOfRays_c);
 	 
      	 j=0;
-     	 projCone={"MaxConeNumber",i,newM_i,"=>"};
+     	 projCone={i,"=>"};
 	 
-     	 while(j<#M4)do(
-	     
+     	 while(j< #M4)do(
+	   
      	     if max(flatten entries (mcone*(mylistOfMaxCones_j_0))   )<=0
       	     and mcone*(mylistOfMaxCones_j_1)==0 
      	     then (
 		
-	 	 projCone=append(projCone,M4_j);
+	 	 
 		 projCone=append(projCone,"max");
 		 projCone=append(projCone,j)
 	 )
      ;j=j+1
      );
-     if projCone==={"MaxConeNumber",i,newM_i,"=>"} then print i,
+     if projCone==={i,"=>"} then print i,
      projCones=append(projCones,projCone);
      i=i+1
      );
@@ -353,8 +368,8 @@ computeNewEmbedding(Ideal,TropicalCycle, ZZ):=opt->(I,T,n)->(
 	       print MissingBinomials;
 	       s:=#MissingBinomials;
 	       Y:=symbol Y;
-	       H:=symbol H;
-	       I':=computeModifiedIdeal(MissingBinomials,toList(Y_1..Y_s),toList(H_1..H_s),I);
+	       h:=symbol h;
+	       I':=computeModifiedIdeal(MissingBinomials,toList(Y_1..Y_s),I);
 	       T':={};
 	       T'=tropicalVariety(I',Prime=>false);
 	       return (I',T')
@@ -381,8 +396,8 @@ computeNewEmbedding(Ideal,List, ZZ):=opt->(I,L,n)->(
 	       print MissingBinomials;
 	       s:=#MissingBinomials;
 	       Y:=symbol Y;
-	       H:=symbol H;
-	       I':=computeModifiedIdeal(MissingBinomials,toList(Y_1..Y_s),toList(H_1..H_s),I);
+	       h:=symbol h;
+	       I':=computeModifiedIdeal(MissingBinomials,toList(Y_1..Y_s),I);
 	       print toString I';
 	       --there is a trick since gfan starting cone does not work,hence I use 
 	       --gfan_bruteforce pretending that I' is not prime
@@ -402,8 +417,8 @@ computeNewEmbedding(Ideal,Ideal):=opt->(I,J)->(
 	       print MissingBinomials;
 	       s:=#MissingBinomials;
 	       Y:=symbol Y;
-	       H:=symbol H;
-	       I':=computeModifiedIdeal(MissingBinomials,toList(Y_1..Y_s),toList(H_1..H_s),I);
+	       h:=symbol h;
+	       I':=computeModifiedIdeal(MissingBinomials,toList(Y_1..Y_s),I);
 	       print toString I';
 	       --there is a trick since gfan starting cone does not work,hence I use 
 	       --gfan_bruteforce pretending that I' is not prime
@@ -462,8 +477,8 @@ findNewToricDegenerations(Ideal):=opt->(I)->(
        using this function"
        else(
        	   T:=tropicalVariety(I);
-	   H:=groebnerToricDegenerations(computeWeightVectors(T),I,minConvention=>opt.minConvention);
-	   findNewToricDegenerations(H_1,I)
+	   G:=groebnerToricDegenerations(computeWeightVectors(T),I,minConvention=>opt.minConvention);
+	   findNewToricDegenerations(G_1,I)
 	   
 
     
@@ -564,7 +579,7 @@ doc ///
     	Text
 	    This package contains all the functions used 
 	     in  "Computing toric degenerations of Flag varieties"[L.Bossinger,S.Lamboglia,K.Mincheva,
-		 F.Moammadi]. 
+		 F.Mohammadi]. 
 	    
 ///
 doc ///
@@ -841,7 +856,7 @@ doc ///
 	  prime initial ideals of I'. The output will be the number of prime initial ideals
 	  of I', the HashTable created by groebnerToricDegenerations and the tropicalization trop(V(I')).
 	  Note that as in the case of computeModifiedIdeal, the ideal I' has new variables of the form
-	  Y_i, H_i, hence these should not be used in the input ideal.
+	  Y_i, h, hence these should not be used in the input ideal.
     
      
      
@@ -910,7 +925,7 @@ doc ///
     Headline
     	
     Usage
-        computeModifiedIdeal(L,V,H,I)
+        computeModifiedIdeal(L,V,I)
     Inputs
 	I:Ideal
 	     
@@ -918,20 +933,20 @@ doc ///
 	    of binomials to add
         V:List
 	    of new variables
-        H:List
-	   of new variables	     
+    
+	    	     
     Outputs
         I':Ideal
 	       
     Description
     	Text 
 	  Note that the ideal I' has new variables of the form
-	  Y_i, H_i, hence these should not be used in the input ideal.
-	  The  ideal I is assumed to be  prime and homogeneous. It first computes I'=I+(V_0-L_0) and it 
-	  homogenizes it with respect to H_0. Then it does the same starting with I',V_1,L_1,H_1 and analogously
+	  Y_i anf h hence these should not be used in the input ideal.
+	  The  ideal I is assumed to be  prime and homogeneous. It first computes I'=I+(V_0-L_0) and if it is not homogeneous it 
+	  homogenizes it with respect to  an ausiliary variable h. Then it does the same starting with I',V_1,L_1 and analogously
 	  for the rest of L_i,V_i. If I is an ideal in QQ[x_1,...,x_n] then  the ideal I'
 	  considered in each step is contained in
-	  a new ring with variables giving x_1,...,x_n and by the elements in the lists V and H.
+	  a the ring QQ[x_1,...,x_n,V] or QQ[x_1,...,x_n,V,h].
 	  The output is the ideal I' described in section 4 of the paper. Note that this is a homogeneous and prime  ideal(if I is prime).
 	  The list of binomials can be computed with findMissingBinomials.
 	  	 
