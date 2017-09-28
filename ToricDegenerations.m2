@@ -33,7 +33,8 @@ export {"computeModifiedIdeal",
 "findMissingBinomials",
 "isBinomialIdeal",
 "groebnerToricDegenerations",
-"bruteForce"
+"bruteForce",
+"initIdeal"
 }
 
 -------------------------------------------------------------------------------------------------------------
@@ -57,12 +58,8 @@ computeWeightVectors=method(Options => {
 	minConvention=>true});
 computeWeightVectors (List,Matrix,Matrix):=opt->(ConesT,R,L)->(
       RaysT:=entries transpose R;
-       Lin:={};
-       for i from 1 to #(entries(L_{0})) do(Lin=Lin|{1});
-       print "ok";
-    if opt.minConvention==false then(
-     apply(ConesT, mycone->(getVector(mycone,RaysT)-(min(getVector(mycone,RaysT))-1)*Lin)))
-     else ( apply(ConesT, mycone->(getVector(mycone,RaysT)-(max(getVector(mycone,RaysT))+1)*Lin)))
+    
+   apply(ConesT, mycone->(getVector(mycone,RaysT)))
      );
 --input: maximal cones,rays and linealityspace of a tropical variety , these have to be lists,use the option minConvetion=>false if you are
 --using max convention
@@ -72,11 +69,10 @@ computeWeightVectors (TropicalCycle):=opt->(T)->(
     RaysT:=entries transpose rays T;
     L:=linealitySpace T;
     ConesT:=maxCones T;
-     Lin:={};
-       for i from 1 to #entries(L_{0}) do(Lin=Lin|{1});
-    if opt.minConvention==false then(
-     apply(ConesT, mycone->(getVector(mycone,RaysT)-(min(getVector(mycone,RaysT))-1)*Lin)))
-     else ( apply(ConesT, mycone->(getVector(mycone,RaysT)-(max(getVector(mycone,RaysT))+1)*Lin)))
+      
+   
+     apply(ConesT, mycone->(getVector(mycone,RaysT)))
+    
      );
 
 
@@ -88,6 +84,20 @@ isBinomialIdeal = ideall -> (
     all(genss, poly->(#terms poly) == 2)
 );
 
+
+
+--short cut to compute initial ideals
+
+initIdeal=(w,I)->(
+R:=newRing(ring I, MonomialOrder=>{Weights=>w},Global=>false);
+J:=sub(I,R);
+K:=ideal(leadTerm(1,J));
+K=sub(K,ring I);
+return K
+
+
+
+)
 
 
 
@@ -115,8 +125,8 @@ initialId:=ideal();
 i:=0;
     while (i<#L)  do (
     if opt.minConvention==true then(
-    initialId = initialIdeal(-L_i, I))
-    else (initialId = initialIdeal(L_i, I));
+    initialId = initIdeal(-L_i, I))
+    else (initialId = initIdeal(L_i, I));
     --print L_i;
     if  isBinomialIdeal(initialId)==true 
     then (
@@ -183,8 +193,8 @@ initialId:=ideal();
 i:=0;
     while (i<#L)  do (
     if  opt.minConvention==false then
-    (initialId = initialIdeal(L_i, I))
-    else (initialId = initialIdeal(-L_i, I));
+    (initialId = initIdeal(L_i, I))
+    else (initialId = initIdeal(-L_i, I));
     allIdeals=append(allIdeals,initialId);
 i=i+1;
 
@@ -357,11 +367,11 @@ computeNewEmbedding(Ideal,TropicalCycle, ZZ):=opt->(I,T,n)->(
 	  InitialIdeal:={};
 	  if opt.minConvention==false then (
 	   WeightN=(computeWeightVectors(T,minConvention=>false))_n;
-	   InitialIdea:=initialIdeal(WeightN,I)	   
+	   InitialIdea:=initIdeal(WeightN,I)	   
 	   )
        	   else (
 	        WeightN=(computeWeightVectors(T,minConvention=>true))_n;
-		InitialIdeal=initialIdeal(-WeightN,I)	   
+		InitialIdeal=initIdeal(-WeightN,I)	   
 	   );
 	       
 	       MissingBinomials:=findMissingBinomials(InitialIdeal);
@@ -385,10 +395,10 @@ computeNewEmbedding(Ideal,TropicalCycle, ZZ):=opt->(I,T,n)->(
 computeNewEmbedding(Ideal,List, ZZ):=opt->(I,L,n)->(
 	  InitialIdeal:={};
 	  if opt.minConvention==false then (
-	   InitialIdeal=initialIdeal(L_n,I)	   
+	   InitialIdeal=initIdeal(L_n,I)	   
 	   )
        	   else (
-		InitialIdeal=initialIdeal(-(L_n),I)	   
+		InitialIdeal=initIdeal(-(L_n),I)	   
 	   );
 	       
            
