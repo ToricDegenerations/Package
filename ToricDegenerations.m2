@@ -94,9 +94,6 @@ J:=sub(I,R);
 K:=ideal(leadTerm(1,J));
 K=sub(K,ring I);
 return K
-
-
-
 )
 
 
