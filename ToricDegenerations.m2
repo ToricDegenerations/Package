@@ -14,7 +14,7 @@ newPackage(
 		"cachePolyhedralOutput" => true,
 		"minConvention" => true
 	},
-        PackageExports => {"FourierMotzkin","gfanInterface","Binomials","Tropical"},
+        PackageExports => {"FourierMotzkin","gfanInterface","Binomials","Tropical","PrimaryDecomposition"},
 	DebuggingMode => true
 )
 export {"computeModifiedIdeal",
